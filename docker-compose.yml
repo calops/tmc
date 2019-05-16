@@ -1,0 +1,200 @@
+# Tocard media server
+#
+# This file regroups all the services required to run everything smoothly.
+#
+# Environment variables are defined at the below locations:
+#   - environment/global.sh: users, paths and ports
+#   - environment/private.sh: identification tokens and passwords
+
+version: "3"
+services:
+    traefik:
+        container_name: traefik
+        image: traefik:latest
+        restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+        volumes:
+            - $TRAEFIK_DIR/traefik.toml:/etc/traefik/traefik.toml
+            - $TRAEFIK_DIR/acme.json:/config/acme.json
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --api --docker
+        ports:
+            - 80:80
+            - 443:443
+
+    plex:
+        container_name: plex
+        image: plexinc/pms-docker:plexpass
+        restart: unless-stopped
+        network_mode: host
+        hostname: plex.$SERVER_NAME
+        privileged: true
+        environment:
+            - PLEX_UID=$PUID
+            - PLEX_GID=$PGID
+            - PLEX_CLAIM=$PLEX_CLAIM_TOKEN
+        volumes:
+            - $PLEX_DIR/config:/config
+            - $PLEX_DIR/transcode:/transcode
+            - $DATA_SERIES:/data/series
+            - $DATA_MOVIES:/data/movies
+        devices:
+            - /dev/dri:/dev/dri
+        ports:
+            - 3005:3005
+            - 5353:5353
+            - 8324:8324
+            - 32400:32400
+            - 32410:32410
+            - 32412:32412
+            - 32413:32413
+            - 32414:32414
+            - 32469:32469
+
+    organizr:
+        container_name: organizr
+        image: organizrtools/organizr-v2
+        restart: unless-stopped
+        volumes:
+            - $ORGANIZR_DIR:/config
+        labels:
+            - "traefik.enable=true"
+            - "traefik.organizr.frontend.rule=Host: $ORGANIZR_DOMAIN"
+            - "traefik.organizr.port=$ORGANIZR_PORT"
+        depends_on:
+            - traefik
+
+    sonarr:
+        container_name: sonarr
+        image: linuxserver/sonarr:preview
+        restart: unless-stopped
+        volumes:
+            - $SONARR_DIR:/config
+            - $DATA_SERIES:/data/series
+            - $DATA_DOWNLOADS:/downloads
+            - $DATA_TORRENTS:/torrents
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $SONARR_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
+            - "traefik.port=$SONARR_PORT"
+
+    radarr:
+        container_name: radarr
+        image: linuxserver/radarr:latest
+        restart: unless-stopped
+        volumes:
+            - $RADARR_DIR:/config
+            - $DATA_MOVIES:/data/movies
+            - $DATA_DOWNLOADS:/downloads/
+            - $DATA_TORRENTS:/torrents
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $RADARR_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
+            - "traefik.port=$RADARR_PORT"
+
+    jackett:
+        container_name: jackett
+        image: linuxserver/jackett:latest
+        restart: unless-stopped
+        volumes:
+            - $JACKETT_DIR:/config
+            - $DATA_TORRENTS:/downloads
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $JACKETT_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
+            - "traefik.port=$JACKETT_PORT"
+
+    netdata:
+        container_name: netdata
+        image: netdata/netdata
+        restart: unless-stopped
+        cap_add:
+            - SYS_PTRACE
+        volumes:
+            - $NETDATA_DIR:/config
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $NETDATA_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
+            - "traefik.port=$NETDATA_PORT"
+
+    rutorrent:
+        container_name: rutorrent
+        image: linuxserver/rutorrent:latest
+        restart: unless-stopped
+        volumes:
+            - $RUTORRENT_DIR:/config
+            - $DATA_DOWNLOADS:/downloads
+            - $DATA_TORRENTS:/torrents
+        ports:
+            - 5000:5000
+            - 51413:51413
+            - 6881:6881/udp
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $RUTORRENT_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
+            - "traefik.port=$RUTORRENT_PORT"
+
+    ombi:
+        container_name: ombi
+        image: linuxserver/ombi:latest
+        restart: unless-stopped
+        volumes:
+            - $OMBI_DIR:/config
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $OMBI_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=4"
+            - "traefik.port=$OMBI_PORT"
+
+    tautulli:
+        container_name: tautulli
+        image: linuxserver/tautulli:latest
+        restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+            - TZ=$TZ
+        volumes:
+            - $TAUTULLI_DIR:/config
+            - $PLEX_DIR/logs:/logs
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $TAUTULLI_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=0"
+            - "traefik.port=$TAUTULLI_PORT"
+
+    smtp:
+        container_name: smtp
+        image: namshi/smtp
+        restart: unless-stopped
+        environment:
+            - MAILNAME=$SERVER_NAME
+            - PORT=$SMTP_PORT
+        expose:
+            - $SMTP_PORT
+
+    genscertifies:
+        container_name: genscertifies
+        image: halverneus/static-file-server:latest
+        volumes:
+            - $GENSCERTIFIES_DIR/www:/web
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $GENSCERTIFIES_DOMAIN"
+            - "traefik.port=$GENSCERTIFIES_PORT"
