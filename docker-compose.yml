@@ -198,3 +198,23 @@ services:
             - "traefik.enable=true"
             - "traefik.frontend.rule=Host: $GENSCERTIFIES_DOMAIN"
             - "traefik.port=$GENSCERTIFIES_PORT"
+
+    lazylibrarian:
+        container_name: lazylibrarian
+        image: linuxserver/lazylibrarian
+        restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+            - TZ=$TZ
+            - DOCKER_MODS=linuxserver/calibre-web:calibre
+        volumes:
+            - $LAZYLIBRARIAN_DIR:/config
+            - $DATA_DOWNLOADS:/downloads
+            - $DATA_TORRENTS:/torrents
+            - $DATA_BOOKS:/books
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $LAZYLIBRARIAN_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=0"
+            - "traefik.port=$LAZYLIBRARIAN_PORT"

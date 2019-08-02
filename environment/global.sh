@@ -24,6 +24,7 @@ export DOCKER_CONFIG=$DOCKER_ROOT/config
 export DATA_ROOT=/home/data
 export DATA_SERIES=$DATA_ROOT/series
 export DATA_MOVIES=$DATA_ROOT/movies
+export DATA_BOOKS=$DATA_ROOT/books
 export DATA_DOWNLOADS=$DATA_ROOT/downloads
 export DATA_TORRENTS=$DATA_ROOT/torrents
 
@@ -69,6 +70,11 @@ export OMBI_PORT=3579
 export TAUTULLI_DOMAIN=tautulli.$SERVER_NAME
 export TAUTULLI_DIR=$DOCKER_CONFIG/tautulli
 export TAUTULLI_PORT=8181
+
+# Lazylibrarian
+export LAZYLIBRARIAN_DOMAIN=lazylibrarian.$SERVER_NAME
+export LAZYLIBRARIAN_DIR=$DOCKER_CONFIG/lazylibrarian
+export LAZYLIBRARIAN_PORT=5299
 
 # Genscertifiés
 export GENSCERTIFIES_DOMAIN=genscertifies.$SERVER_NAME
