@@ -76,10 +76,17 @@ export LAZYLIBRARIAN_DOMAIN=lazylibrarian.$SERVER_NAME
 export LAZYLIBRARIAN_DIR=$DOCKER_CONFIG/lazylibrarian
 export LAZYLIBRARIAN_PORT=5299
 
+# Gossa
+export GOSSA_DOMAIN=gossa.$SERVER_NAME
+export GOSSA_PORT=8001
+
 # Genscertifiés
 export GENSCERTIFIES_DOMAIN=genscertifies.$SERVER_NAME
 export GENSCERTIFIES_DIR=$DOCKER_CONFIG/genscertifies
 export GENSCERTIFIES_PORT=8080
+
+# Factorio
+export FACTORIO_DIR=$DOCKER_CONFIG/factorio
 
 # SMTP
 export SMTP_PORT=25

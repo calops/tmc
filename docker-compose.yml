@@ -10,11 +10,12 @@ version: "3"
 services:
     traefik:
         container_name: traefik
-        image: traefik:latest
+        image: traefik:v1.6
         restart: unless-stopped
         environment:
             - PUID=$PUID
             - PGID=$PGID
+            - TZ=$TZ
         volumes:
             - $TRAEFIK_DIR/traefik.toml:/etc/traefik/traefik.toml
             - $TRAEFIK_DIR/acme.json:/config/acme.json
@@ -35,6 +36,7 @@ services:
             - PLEX_UID=$PUID
             - PLEX_GID=$PGID
             - PLEX_CLAIM=$PLEX_CLAIM_TOKEN
+            - TZ=$TZ
         volumes:
             - $PLEX_DIR/config:/config
             - $PLEX_DIR/transcode:/transcode
@@ -78,6 +80,7 @@ services:
         environment:
             - PUID=$PUID
             - PGID=$PGID
+            - TZ=$TZ
         labels:
             - "traefik.enable=true"
             - "traefik.frontend.rule=Host: $SONARR_DOMAIN"
@@ -96,6 +99,7 @@ services:
         environment:
             - PUID=$PUID
             - PGID=$PGID
+            - TZ=$TZ
         labels:
             - "traefik.enable=true"
             - "traefik.frontend.rule=Host: $RADARR_DOMAIN"
@@ -106,6 +110,10 @@ services:
         container_name: jackett
         image: linuxserver/jackett:latest
         restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+            - TZ=$TZ
         volumes:
             - $JACKETT_DIR:/config
             - $DATA_TORRENTS:/downloads
@@ -136,6 +144,10 @@ services:
         container_name: rutorrent
         image: linuxserver/rutorrent:latest
         restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+            - TZ=$TZ
         volumes:
             - $RUTORRENT_DIR:/config
             - $DATA_DOWNLOADS:/downloads
@@ -188,6 +200,8 @@ services:
             - PORT=$SMTP_PORT
         expose:
             - $SMTP_PORT
+        labels:
+            - "traefik.enable=false"
 
     genscertifies:
         container_name: genscertifies
@@ -218,3 +232,35 @@ services:
             - "traefik.frontend.rule=Host: $LAZYLIBRARIAN_DOMAIN"
             - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
             - "traefik.port=$LAZYLIBRARIAN_PORT"
+
+    gossa:
+        container_name: gossa
+        image: pldubouilh/gossa
+        restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+            - TZ=$TZ
+        volumes:
+            - $DATA_DOWNLOADS:/shared/downloads
+            - $DATA_SERIES:/shared/series
+            - $DATA_MOVIES:/shared/movies
+        labels:
+            - "traefik.enable=true"
+            - "traefik.frontend.rule=Host: $GOSSA_DOMAIN"
+            - "traefik.frontend.auth.forward.address=http://organizr/api/?v1/auth&group=1"
+            - "traefik.port=$GOSSA_PORT"
+
+    factorio:
+        container_name: factorio
+        image: factoriotools/factorio:stable
+        restart: unless-stopped
+        environment:
+            - PUID=$PUID
+            - PGID=$PGID
+            - TZ=$TZ
+        volumes:
+            - $FACTORIO_DIR:/factorio
+        ports:
+            - 34197:34197/udp
+            - 27015:27015/tcp
